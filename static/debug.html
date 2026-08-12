@@ -1,0 +1,84 @@
+                                  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gemini Debug Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-slate-100">
+  <div class="max-w-5xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Gemini Debug Dashboard</h1>
+    <div class="flex items-center gap-3 mb-4">
+      <button id="connectBtn" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500">Connect</button>
+      <div id="health" class="text-sm text-slate-300"></div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4 mb-4">
+      <div class="p-4 rounded border border-slate-800 bg-slate-900/50">
+        <div class="text-xs text-slate-400">Calls</div>
+        <div id="calls" class="text-2xl">0</div>
+      </div>
+      <div class="p-4 rounded border border-slate-800 bg-slate-900/50">
+        <div class="text-xs text-slate-400">Errors</div>
+        <div id="errors" class="text-2xl">0</div>
+      </div>
+      <div class="p-4 rounded border border-slate-800 bg-slate-900/50">
+        <div class="text-xs text-slate-400">Avg Duration (ms)</div>
+        <div id="avgd" class="text-2xl">-</div>
+      </div>
+    </div>
+
+    <div class="p-4 rounded border border-slate-800 bg-slate-900/50 h-[400px] overflow-auto">
+      <pre id="events" class="text-xs whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+
+  <script>
+    let ws;
+    let callCount = 0, errorCount = 0, totalDuration = 0;
+
+    async function refreshHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        document.getElementById('health').textContent = `Gemini: ${data.gemini.enabled ? 'enabled' : 'disabled'} (${data.gemini.model})`;
+      } catch { document.getElementById('health').textContent = 'Health unavailable'; }
+    }
+
+    function appendEvent(ev) {
+      const pre = document.getElementById('events');
+      pre.textContent += `${new Date(ev.ts * 1000).toISOString()} | ${ev.event} ${ev.vm_id ? '(' + ev.vm_id + ')' : ''} ${ev.error ? ' - ' + ev.error : ''} ${ev.chars ? ' chars=' + ev.chars : ''} ${ev.duration_ms ? ' ms=' + ev.duration_ms : ''}` + "\n";
+      pre.scrollTop = pre.scrollHeight;
+
+      if (ev.event === 'gemini_call') {
+        callCount++;
+        totalDuration += (ev.duration_ms || 0);
+      }
+      if (ev.event === 'gemini_error' || ev.event === 'gemini_analysis_error') {
+        errorCount++;
+      }
+      document.getElementById('calls').textContent = callCount;
+      document.getElementById('errors').textContent = errorCount;
+      document.getElementById('avgd').textContent = callCount ? Math.round(totalDuration / callCount) : '-';
+    }
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}/ws/debug`);
+      ws.onopen = () => { document.getElementById('connectBtn').textContent = 'Connected'; };
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          if (msg.type === 'event' && msg.data) appendEvent(msg.data);
+        } catch {}
+      };
+      ws.onclose = () => { document.getElementById('connectBtn').textContent = 'Connect'; };
+      ws.onerror = () => { document.getElementById('connectBtn').textContent = 'Error'; };
+    }
+
+    document.getElementById('connectBtn').addEventListener('click', connect);
+    refreshHealth();
+  </script>
+</body>
+</html>

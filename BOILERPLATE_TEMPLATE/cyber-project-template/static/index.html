@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Project Template</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- xterm.js for terminal UI (optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.min.css">
+    
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+        }
+        
+        .glass-panel {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .terminal-panel {
+            background: rgba(8, 8, 12, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .status-connected {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .status-disconnected {
+            color: #ffaa00;
+            font-weight: bold;
+        }
+        
+        .status-error {
+            color: #ff4444;
+            font-weight: bold;
+        }
+        
+        .metric {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+        }
+        
+        .metric.high {
+            color: #ff4444;
+        }
+        
+        .metric.medium {
+            color: #ffaa00;
+        }
+        
+        .metric.normal {
+            color: #00ff88;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="glass-panel border-b">
+            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Cyber Project Template</h1>
+                <div id="health-status" class="text-sm text-gray-400">
+                    Loading...
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+            <!-- Resource Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Resource 1 -->
+                <section class="glass-panel rounded-lg p-6">
+                    <div class="mb-4">
+                        <h2 class="text-xl font-bold mb-2">Resource 1</h2>
+                        <div class="flex gap-4 text-sm">
+                            <div>
+                                Monitor: <span id="resource1-monitor-status" class="status-disconnected">Disconnected</span>
+                            </div>
+                            <div>
+                                Stats: <span id="resource1-stats-status" class="status-disconnected">Disconnected</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Metrics Display -->
+                    <div class="terminal-panel rounded p-4 mb-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-400">CPU</div>
+                            <div class="metric normal" id="resource1-cpu">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Memory</div>
+                            <div class="metric normal" id="resource1-memory">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Disk</div>
+                            <div class="metric normal" id="resource1-disk">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Load</div>
+                            <div class="metric normal" id="resource1-load">--</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Terminal Area (placeholder) -->
+                    <div id="resource1-terminal" class="terminal-panel rounded p-4 h-64 overflow-auto">
+                        <div class="text-gray-500 text-sm">
+                            Terminal output will appear here
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Resource 2 -->
+                <section class="glass-panel rounded-lg p-6">
+                    <div class="mb-4">
+                        <h2 class="text-xl font-bold mb-2">Resource 2</h2>
+                        <div class="flex gap-4 text-sm">
+                            <div>
+                                Monitor: <span id="resource2-monitor-status" class="status-disconnected">Disconnected</span>
+                            </div>
+                            <div>
+                                Stats: <span id="resource2-stats-status" class="status-disconnected">Disconnected</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Metrics Display -->
+                    <div class="terminal-panel rounded p-4 mb-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-400">CPU</div>
+                            <div class="metric normal" id="resource2-cpu">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Memory</div>
+                            <div class="metric normal" id="resource2-memory">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Disk</div>
+                            <div class="metric normal" id="resource2-disk">--</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400">Load</div>
+                            <div class="metric normal" id="resource2-load">--</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Terminal Area (placeholder) -->
+                    <div id="resource2-terminal" class="terminal-panel rounded p-4 h-64 overflow-auto">
+                        <div class="text-gray-500 text-sm">
+                            Terminal output will appear here
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Info Box -->
+            <div class="mt-8 glass-panel rounded-lg p-6 bg-blue-950 bg-opacity-30 border-blue-800">
+                <h3 class="font-bold mb-2">ℹ️ Optimization Tips</h3>
+                <ul class="text-sm text-gray-300 space-y-1 list-disc list-inside">
+                    <li><strong>Stats polling pauses automatically</strong> when you switch browser tabs (Page Visibility API)</li>
+                    <li><strong>Analysis is debounced</strong> to reduce Gemini API calls by ~50%</li>
+                    <li><strong>Monitor the debug dashboard</strong> at <a href="/debug" class="text-blue-400 underline">/debug</a> to see API call patterns</li>
+                    <li>Adjust <code class="bg-gray-900 px-1 rounded">ANALYSIS_DEBOUNCE_MS</code> and <code class="bg-gray-900 px-1 rounded">ANALYSIS_SAMPLE_SIZE</code> in <code class="bg-gray-900 px-1 rounded">.env</code> to tune performance</li>
+                </ul>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="glass-panel border-t mt-8 text-center py-4 text-xs text-gray-500">
+            <p>Cyber Project Template • Based on CyberGym by X-Rachit-X</p>
+        </footer>
+    </div>
+    
+    <!-- Application Scripts -->
+    <script src="/static/js/app.js"></script>
+    <script>
+        // Initialize monitors with UI callbacks
+        const resource1 = new RealTimeMonitor('resource1', {
+            onOutput: (msg) => {
+                const terminalEl = document.getElementById('resource1-terminal');
+                if (msg.data) {
+                    terminalEl.innerHTML += `<div class="text-sm">${msg.data}</div>`;
+                    terminalEl.scrollTop = terminalEl.scrollHeight;
+                }
+            },
+            onStats: (stats) => {
+                const updateMetric = (id, value, suffix = '') => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.textContent = typeof value === 'number' ? value.toFixed(1) + suffix : '--';
+                        // Color code: high (>80), medium (60-80), normal
+                        if (typeof value === 'number') {
+                            el.parentElement.className = 'text-xs text-gray-400';
+                            if (value > 80) el.className = 'metric high';
+                            else if (value > 60) el.className = 'metric medium';
+                            else el.className = 'metric normal';
+                        }
+                    }
+                };
+                updateMetric('resource1-cpu', stats.cpu, '%');
+                updateMetric('resource1-memory', stats.memory, '%');
+                updateMetric('resource1-disk', stats.disk, '%');
+                updateMetric('resource1-load', stats.load);
+            },
+            onAnalysis: (result) => {
+                console.log('Analysis result:', result);
+            }
+        });
+        
+        const resource2 = new RealTimeMonitor('resource2', {
+            onOutput: (msg) => {
+                const terminalEl = document.getElementById('resource2-terminal');
+                if (msg.data) {
+                    terminalEl.innerHTML += `<div class="text-sm">${msg.data}</div>`;
+                    terminalEl.scrollTop = terminalEl.scrollHeight;
+                }
+            },
+            onStats: (stats) => {
+                const updateMetric = (id, value, suffix = '') => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.textContent = typeof value === 'number' ? value.toFixed(1) + suffix : '--';
+                        if (typeof value === 'number') {
+                            el.parentElement.className = 'text-xs text-gray-400';
+                            if (value > 80) el.className = 'metric high';
+                            else if (value > 60) el.className = 'metric medium';
+                            else el.className = 'metric normal';
+                        }
+                    }
+                };
+                updateMetric('resource2-cpu', stats.cpu, '%');
+                updateMetric('resource2-memory', stats.memory, '%');
+                updateMetric('resource2-disk', stats.disk, '%');
+                updateMetric('resource2-load', stats.load);
+            }
+        });
+        
+        // Health check
+        setInterval(async () => {
+            try {
+                const resp = await fetch('/api/health');
+                const data = await resp.json();
+                document.getElementById('health-status').textContent = `Status: ${data.status} • Connections: ${Object.values(data.connections).reduce((a,b) => a+b, 0)}`;
+            } catch (e) {
+                console.error('Health check failed:', e);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

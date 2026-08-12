@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypt Lab — IDS Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://js.puter.com/v2/"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --accent: #06b6d4; --danger: #ef4444; --warn: #f97316; }
+    body { font-family: "Inter", sans-serif; background: #09090f; color: #e4e4e7; }
+    #attack-map { width: 100%; height: 100%; }
+    .leaflet-container { background: #09090f !important; }
+
+    /* Alert table row hover */
+    .alert-row { cursor: pointer; transition: background 0.15s; }
+    .alert-row:hover { background: rgba(255,255,255,0.04); }
+    .alert-new { animation: rowFlash 1s ease-out; }
+    @keyframes rowFlash {
+      0%   { background: rgba(6,182,212,0.18); }
+      100% { background: transparent; }
+    }
+
+    /* Expandable detail row */
+    .alert-detail { display: none; }
+    .alert-detail.open { display: table-row; }
+
+    /* Severity badges */
+    .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .badge-high   { background: rgba(239,68,68,0.15);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+    .badge-medium { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+    .badge-low    { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+
+    /* Countermeasures pulse */
+    .cm-pulse { animation: cmGlow 0.6s ease-out; }
+    @keyframes cmGlow {
+      0%   { box-shadow: 0 0 0 0 rgba(6,182,212,0.4); }
+      70%  { box-shadow: 0 0 0 10px rgba(6,182,212,0); }
+      100% { box-shadow: 0 0 0 0 rgba(6,182,212,0); }
+    }
+
+    /* Status dots */
+    .dot-connected { background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: pulse-dot 2s infinite; }
+    .dot-error     { background: #ef4444; }
+    .dot-connecting{ background: #f59e0b; animation: pulse-dot 1s infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* Log viewer */
+    #log-viewer { font-family: "JetBrains Mono", monospace; font-size: 11px; line-height: 1.6; }
+    .log-auth-failure         { color: #f87171; }
+    .log-privilege-escalation { color: #c084fc; }
+    .log-http-scan            { color: #fb923c; }
+    .log-ssh-success          { color: #4ade80; }
+    .log-generic              { color: #a1a1aa; }
+
+    /* Simulator progress bar */
+    #sim-progress { transition: width 0.3s linear; }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+    /* Stats panel */
+    .stat-bar-wrap { display: flex; align-items: center; gap: 6px; }
+    .stat-bar-bg   { flex: 1; height: 5px; background: #27272a; border-radius: 9999px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 9999px; transition: width 0.4s ease; }
+    .hourly-col    { display: inline-block; background: #06b6d4; border-radius: 2px 2px 0 0;
+                     min-width: 4px; transition: height 0.3s ease; }
+
+    /* ── CHATBOT ── */
+    #chatbot-toggle {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1e293b; color: #00b4d8;
+      border: 1px solid #00b4d8; border-radius: 24px;
+      padding: 10px 20px; cursor: pointer;
+      font-size: 14px; font-weight: 600; z-index: 999;
+      box-shadow: 0 0 12px rgba(0,180,216,0.3);
+      animation: chatbot-pulse-border 2s infinite;
+    }
+    #chatbot-toggle .notification-dot {
+      position: absolute; top: -4px; right: -4px;
+      width: 12px; height: 12px; background: #ef4444;
+      border-radius: 50%; display: none;
+    }
+    #chatbot-toggle .notification-dot.visible { display: block; }
+    #chatbot-panel {
+      position: fixed; bottom: 80px; right: 24px;
+      width: 420px; height: 560px; background: #0f172a;
+      border: 1px solid #334155; border-radius: 12px;
+      z-index: 1000; display: flex; flex-direction: column;
+      box-shadow: 0 0 24px rgba(0,180,216,0.15);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #chatbot-panel.chatbot-hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
+    #chatbot-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px; border-bottom: 1px solid #334155;
+      color: #00b4d8; font-weight: 700; font-size: 15px; flex-shrink: 0;
+    }
+    #chatbot-header button {
+      background: none; border: none; color: #475569;
+      cursor: pointer; font-size: 16px; padding: 2px 6px;
+    }
+    #chatbot-header button:hover { color: #00b4d8; }
+    #chatbot-subtitle {
+      padding: 6px 16px; font-size: 11px; color: #64748b;
+      border-bottom: 1px solid #1e293b; flex-shrink: 0;
+    }
+    #chatbot-messages {
+      flex: 1; overflow-y: auto; padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 10px;
+      scroll-behavior: smooth; min-height: 0;
+    }
+    #chatbot-messages::-webkit-scrollbar { width: 4px; }
+    #chatbot-messages::-webkit-scrollbar-track { background: transparent; }
+    #chatbot-messages::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    .chat-bubble-user {
+      align-self: flex-end; background: #1e40af; color: white;
+      padding: 8px 12px; border-radius: 12px 12px 2px 12px;
+      max-width: 80%; font-size: 13px; line-height: 1.5; word-break: break-word;
+    }
+    .chat-bubble-ai {
+      align-self: flex-start; background: #1e293b; color: #e2e8f0;
+      border-left: 3px solid #00b4d8; padding: 8px 12px;
+      border-radius: 12px 12px 12px 2px; max-width: 85%;
+      font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+    }
+    .chat-bubble-system {
+      align-self: center; color: #64748b; font-size: 11px;
+      font-style: italic; padding: 4px 8px; text-align: center;
+    }
+    .typing-dots span { animation: typing-dot 1.2s infinite; font-size: 20px; color: #00b4d8; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    #chatbot-context-bar {
+      padding: 6px 16px; border-top: 1px solid #1e293b;
+      border-bottom: 1px solid #1e293b; font-size: 11px;
+      color: #475569; flex-shrink: 0;
+    }
+    #chatbot-input-row {
+      display: flex; gap: 8px; padding: 10px 12px; flex-shrink: 0;
+    }
+    #chatbot-input {
+      flex: 1; background: #1e293b; border: 1px solid #334155;
+      border-radius: 8px; color: #e2e8f0; padding: 8px 12px;
+      font-size: 13px; outline: none; font-family: inherit;
+    }
+    #chatbot-input:focus { border-color: #00b4d8; box-shadow: 0 0 8px rgba(0,180,216,0.2); }
+    #chatbot-input-row button {
+      background: #00b4d8; color: #0f172a; border: none;
+      border-radius: 8px; padding: 8px 14px; font-weight: 700;
+      cursor: pointer; font-size: 13px;
+    }
+    #chatbot-input-row button:hover { background: #22d3ee; }
+    #chatbot-quick-buttons {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 0 12px 10px; flex-shrink: 0;
+    }
+    #chatbot-quick-buttons button {
+      background: #1e293b; color: #94a3b8; border: 1px solid #334155;
+      border-radius: 16px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+    }
+    #chatbot-quick-buttons button:hover { border-color: #00b4d8; color: #00b4d8; }
+    @keyframes chatbot-pulse-border {
+      0%, 100% { box-shadow: 0 0 12px rgba(0,180,216,0.3); }
+      50%       { box-shadow: 0 0 20px rgba(0,180,216,0.6); }
+    }
+    @keyframes typing-dot {
+      0%, 60%, 100% { opacity: 0.2; }
+      30%            { opacity: 1; }
+    }
+  </style>
+</head>
+<body class="min-h-screen overflow-x-hidden">
+
+  <!-- ══ HEADER ══ -->
+  <header class="sticky top-0 z-50 flex items-center justify-between px-5 py-3 bg-zinc-950/90 backdrop-blur border-b border-zinc-800/60">
+    <div class="flex items-center gap-3">
+      <svg class="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6
+             3.99 3.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623
+             5.176-1.332 9-6.03 9-11.622
+             0-1.31-.21-2.571-.598-3.751
+             h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+      </svg>
+      <h1 class="text-base font-bold tracking-wide text-zinc-100">Crypt Lab <span class="text-cyan-400">IDS</span></h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2" id="ids-status">
+        <span class="w-2 h-2 rounded-full dot-connecting" id="ids-status-dot"></span>
+        <span class="text-xs text-zinc-400" id="ids-status-text">Connecting&hellip;</span>
+      </div>
+      <!-- Sensor IP chip -->
+      <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-700/60" title="Sensor IP address (this machine)">
+        <svg class="w-3 h-3 text-cyan-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+        </svg>
+        <span class="text-[11px] font-mono text-zinc-400">Sensor&nbsp;</span>
+        <span class="text-[11px] font-mono text-cyan-400 font-semibold" id="sensor-ip">…</span>
+      </div>
+      <span class="text-xs font-mono text-zinc-500" id="current-time">--:--:-- UTC</span>
+    </div>
+  </header>
+
+  <!-- ══ MAIN GRID ══ -->
+  <main class="grid gap-3 p-3" style="grid-template-columns:1fr 1fr 340px; grid-template-rows:auto 260px auto;">
+
+    <!-- ── ALERT FEED (spans 2 cols) ── -->
+    <section class="col-span-2 rounded-xl bg-zinc-900/70 border border-zinc-800/60 flex flex-col min-h-0">
+      <div class="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/60">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+          <h2 class="text-sm font-semibold text-zinc-200">Live Alert Feed</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] text-zinc-500" id="alert-table-count">0 alerts</span>
+          <span class="text-[11px] text-zinc-600">|</span>
+          <span class="text-[11px] font-mono text-cyan-500" id="alert-counter">0 alerts</span>
+          <span class="text-[11px] text-zinc-600">|</span>
+          <button id="clear-alerts-btn"
+            class="text-[11px] px-2.5 py-0.5 rounded bg-zinc-800 hover:bg-red-900 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-700 transition font-mono">
+            🗑 Clear
+          </button>
+        </div>
+      </div>
+      <div class="overflow-auto flex-1">
+        <table class="w-full text-xs">
+          <thead class="sticky top-0 bg-zinc-950/80 text-zinc-500 uppercase tracking-wider text-[10px]">
+            <tr>
+              <th class="py-2 px-2 text-left font-medium">Time</th>
+              <th class="py-2 px-2 text-left font-medium">Attack</th>
+              <th class="py-2 px-2 text-left font-medium">Source IP</th>
+              <th class="py-2 px-2 text-left font-medium">Location</th>
+              <th class="py-2 px-2 text-left font-medium">Severity</th>
+              <th class="py-2 px-2 text-left font-medium">Confidence</th>
+              <th class="py-2 px-2 text-left font-medium">Message</th>
+            </tr>
+          </thead>
+          <tbody id="alert-table-body">
+            <tr id="alert-table-empty">
+              <td colspan="7" class="py-12 text-center text-zinc-600 text-xs">No alerts detected yet — system is monitoring</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── COUNTERMEASURES (row 1 col 3) ── -->
+    <section id="countermeasures-panel" class="rounded-xl bg-zinc-900/70 border border-zinc-800/60 flex flex-col">
+      <div class="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-800/60">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+        <h2 class="text-sm font-semibold text-zinc-200">Countermeasures</h2>
+      </div>
+      <div class="flex-1 overflow-auto px-4 py-3" id="countermeasures-list">
+        <p class="text-xs text-zinc-600 text-center mt-6">Countermeasures will appear<br>when a threat is detected</p>
+      </div>
+    </section>
+
+    <!-- ── ATTACK MAP (row 2 col 1-2) ── -->
+    <section class="col-span-2 rounded-xl bg-zinc-900/70 border border-zinc-800/60 overflow-hidden" style="height:260px">
+      <div class="flex items-center gap-2 px-4 py-2 border-b border-zinc-800/60">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+        <h2 class="text-sm font-semibold text-zinc-200">Attack Map</h2>
+      </div>
+      <div style="height:calc(100% - 37px)">
+        <div id="attack-map"></div>
+      </div>
+    </section>
+
+    <!-- ── DISTRIBUTION CHART (row 2 col 3) ── -->
+    <section class="rounded-xl bg-zinc-900/70 border border-zinc-800/60 flex flex-col" style="height:260px">
+      <div class="flex items-center justify-between px-4 py-2 border-b border-zinc-800/60">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+          <h2 class="text-sm font-semibold text-zinc-200">Attack Distribution</h2>
+        </div>
+        <span class="text-[11px] font-mono text-zinc-500"><span id="chart-total">0</span> total</span>
+      </div>
+      <div class="flex-1 flex items-center justify-center p-2">
+        <canvas id="attack-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- ── LOG VIEWER (row 3 col 1-2) ── -->
+    <section class="col-span-2 rounded-xl bg-zinc-900/70 border border-zinc-800/60 flex flex-col" style="min-height:180px">
+      <div class="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/60">
+        <div class="flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+          <h2 class="text-sm font-semibold text-zinc-200">System Log Viewer</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="log-pause-btn"
+            class="text-[11px] px-3 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition font-mono">
+            ⏸ Pause
+          </button>
+          <button id="clear-logs-btn"
+            class="text-[11px] px-2.5 py-1 rounded bg-zinc-800 hover:bg-red-900 text-zinc-400 hover:text-red-300 border border-zinc-700 hover:border-red-700 transition font-mono">
+            🗑 Clear
+          </button>
+        </div>
+      </div>
+      <div id="log-viewer" class="flex-1 overflow-auto px-3 py-2 space-y-0.5 min-h-[120px]">
+        <div class="log-generic">Initializing log viewer&hellip;</div>
+      </div>
+    </section>
+
+    <!-- ── SIMULATOR (row 3 col 3) ── -->
+    <section class="rounded-xl bg-zinc-900/70 border border-zinc-800/60 flex flex-col">
+      <div class="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-800/60">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+        <h2 class="text-sm font-semibold text-zinc-200">Attack Simulator</h2>
+      </div>
+      <div class="px-4 py-3 flex flex-col gap-3 flex-1">
+        <!-- Status bar -->
+        <div class="rounded bg-zinc-950/60 border border-zinc-800 px-3 py-2">
+          <div class="flex justify-between text-[10px] text-zinc-500 mb-1">
+            <span id="sim-status">Ready</span>
+            <span class="font-mono" id="sim-progress-label">0%</span>
+          </div>
+          <div class="w-full h-1 bg-zinc-800 rounded overflow-hidden">
+            <div id="sim-progress" class="h-full bg-cyan-500 rounded" style="width:0%"></div>
+          </div>
+        </div>
+        <!-- Scenario buttons -->
+        <div class="grid grid-cols-1 gap-1.5">
+          <button id="sim-btn-PORT_SCAN"
+            class="w-full py-2 px-3 rounded text-xs font-semibold bg-zinc-800 hover:bg-cyan-900 border border-zinc-700 hover:border-cyan-700 text-zinc-200 transition text-left">
+            🔍 Port Scan
+          </button>
+          <button id="sim-btn-DOS_FLOOD"
+            class="w-full py-2 px-3 rounded text-xs font-semibold bg-zinc-800 hover:bg-red-900 border border-zinc-700 hover:border-red-700 text-zinc-200 transition text-left">
+            💥 DoS Flood
+          </button>
+          <button id="sim-btn-BRUTE_FORCE_SSH"
+            class="w-full py-2 px-3 rounded text-xs font-semibold bg-zinc-800 hover:bg-amber-900 border border-zinc-700 hover:border-amber-700 text-zinc-200 transition text-left">
+            🔑 Brute Force SSH
+          </button>
+          <button id="sim-btn-WEB_SCAN"
+            class="w-full py-2 px-3 rounded text-xs font-semibold bg-zinc-800 hover:bg-purple-900 border border-zinc-700 hover:border-purple-700 text-zinc-200 transition text-left">
+            🌐 Web Scan
+          </button>
+          <button id="sim-btn-DDOS"
+            class="w-full py-2 px-3 rounded text-xs font-semibold bg-zinc-800 hover:bg-red-950 border border-zinc-700 hover:border-red-800 text-zinc-200 transition text-left">
+            ☠️ DDoS
+          </button>
+          <button id="sim-btn-HEARTBLEED"
+            class="w-full py-2 px-3 rounded text-xs font-semibold bg-zinc-800 hover:bg-rose-950 border border-zinc-700 hover:border-rose-700 text-zinc-200 transition text-left">
+            💉 Heartbleed
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══ STATISTICS DASHBOARD ══ -->
+  <section class="mx-3 mb-3 rounded-xl bg-zinc-900/70 border border-zinc-800/60">
+    <!-- Collapsible header -->
+    <button id="stats-toggle"
+      class="w-full flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/60 hover:bg-zinc-800/30 transition rounded-t-xl"
+      onclick="document.getElementById('stats-body').classList.toggle('hidden');
+               this.querySelector('#stats-chevron').classList.toggle('rotate-180')">
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+        <h2 class="text-sm font-semibold text-zinc-200">Statistics Dashboard</h2>
+        <span class="text-[10px] text-zinc-500 font-mono ml-1" id="stats-last-updated"></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Severity summary badges (always visible) -->
+        <div id="stats-severity-summary" class="flex items-center gap-2 text-[10px] font-mono">
+          <span class="badge badge-high" id="stats-badge-high">High: 0</span>
+          <span class="badge badge-medium" id="stats-badge-medium">Med: 0</span>
+          <span class="badge badge-low" id="stats-badge-low">Low: 0</span>
+        </div>
+        <svg id="stats-chevron" class="w-4 h-4 text-zinc-500 transition-transform duration-200"
+          fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+    </button>
+
+    <!-- Collapsible body -->
+    <div id="stats-body" class="hidden">
+      <div class="grid gap-4 p-4" style="grid-template-columns: 1fr 1fr 1fr;">
+
+        <!-- TOP ATTACKING IPs -->
+        <div>
+          <h3 class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Top Attacking IPs</h3>
+          <div id="stats-top-ips" class="space-y-2 text-xs">
+            <p class="text-zinc-600 text-[11px]">No data yet</p>
+          </div>
+        </div>
+
+        <!-- HOURLY ACTIVITY (last 24 h) -->
+        <div>
+          <h3 class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Hourly Activity — Last 24h</h3>
+          <div id="stats-hourly" class="flex items-end gap-px" style="height:60px;">
+            <span class="text-zinc-600 text-[11px] self-center">No data yet</span>
+          </div>
+          <div class="flex justify-between text-[9px] text-zinc-600 font-mono mt-1">
+            <span id="stats-hourly-start">24h ago</span>
+            <span id="stats-hourly-end">now</span>
+          </div>
+        </div>
+
+        <!-- ATTACK TYPE BREAKDOWN -->
+        <div>
+          <h3 class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">Attack Type Breakdown</h3>
+          <div id="stats-attack-dist" class="space-y-1.5 text-xs">
+            <p class="text-zinc-600 text-[11px]">No data yet</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ SCRIPTS ══ -->
+  <script src="/static/js/map.js"></script>
+  <script src="/static/js/simulator.js"></script>
+  <script src="/static/js/app.js"></script>
+
+  <!-- ══ CHATBOT ══ -->
+  <button id="chatbot-toggle" onclick="chatbot.toggle()" style="position:fixed">
+    <span class="notification-dot" id="chatbot-notif-dot"></span>
+    🤖 Ask Crypt Lab
+  </button>
+
+  <div id="chatbot-panel" class="chatbot-hidden">
+    <div id="chatbot-header">
+      <span>🔐 Crypt Lab AI</span>
+      <div style="display:flex;gap:4px">
+        <button onclick="chatbot.refreshContext()" title="Refresh context">🔄</button>
+        <button onclick="chatbot.close()" title="Close">✕</button>
+      </div>
+    </div>
+    <div id="chatbot-subtitle">Ask me about your network security</div>
+    <div id="chatbot-messages"></div>
+    <div id="chatbot-context-bar">
+      <span id="chatbot-context-text">Loading context…</span>
+    </div>
+    <div id="chatbot-input-row">
+      <input
+        id="chatbot-input"
+        type="text"
+        placeholder="Type your question…"
+        onkeydown="if(event.key==='Enter' && !chatbot.isStreaming) chatbot.send()"
+      />
+      <button onclick="chatbot.send()">Send ▶</button>
+    </div>
+    <div id="chatbot-quick-buttons"></div>
+  </div>
+
+  <script src="/static/js/chatbot.js"></script>
+</body>
+</html>

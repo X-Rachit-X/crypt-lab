@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dashboard - Cyber Project Template</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+        .glass-panel {
+            background: rgba(15, 15, 25, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .event-entry {
+            background: rgba(30, 30, 50, 0.5);
+            border-left: 3px solid #00ff88;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 3px;
+            font-size: 0.875rem;
+            word-break: break-word;
+        }
+        .event-entry.error {
+            border-left-color: #ff4444;
+        }
+        .event-entry.analysis {
+            border-left-color: #0099ff;
+        }
+        .timestamp {
+            color: #888;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="glass-panel border-b">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <h1 class="text-2xl font-bold">Debug Dashboard</h1>
+                <p class="text-sm text-gray-400 mt-1">Monitor Gemini API calls, errors, and analysis events in real-time</p>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
+            <!-- Stats -->
+            <div class="grid grid-cols-4 gap-4 mb-8">
+                <div class="glass-panel rounded p-4">
+                    <div class="text-xs text-gray-400">Total Events</div>
+                    <div class="text-2xl font-bold" id="total-events">0</div>
+                </div>
+                <div class="glass-panel rounded p-4">
+                    <div class="text-xs text-gray-400">Gemini Calls</div>
+                    <div class="text-2xl font-bold text-blue-400" id="gemini-calls">0</div>
+                </div>
+                <div class="glass-panel rounded p-4">
+                    <div class="text-xs text-gray-400">Errors</div>
+                    <div class="text-2xl font-bold text-red-400" id="error-count">0</div>
+                </div>
+                <div class="glass-panel rounded p-4">
+                    <div class="text-xs text-gray-400">Connection</div>
+                    <div class="text-xl font-bold" id="ws-status">
+                        <span class="text-yellow-500">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Event Log -->
+            <div class="glass-panel rounded-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Event Log</h2>
+                    <button 
+                        onclick="clearEvents()"
+                        class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
+                    >
+                        Clear
+                    </button>
+                </div>
+                
+                <div id="event-log" class="max-h-96 overflow-y-auto">
+                    <div class="text-gray-500 text-center py-8">
+                        Waiting for events...
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Legend -->
+            <div class="mt-8 glass-panel rounded-lg p-6 bg-blue-950 bg-opacity-30 border-blue-800">
+                <h3 class="font-bold mb-4">Event Types</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="inline-block w-3 h-3 bg-green-500 rounded mr-2"></span>
+                        <span><strong>gemini_call:</strong> API call to Gemini model</span>
+                    </div>
+                    <div>
+                        <span class="inline-block w-3 h-3 bg-blue-500 rounded mr-2"></span>
+                        <span><strong>analysis_queued:</strong> Analysis event enqueued</span>
+                    </div>
+                    <div>
+                        <span class="inline-block w-3 h-3 bg-red-500 rounded mr-2"></span>
+                        <span><strong>gemini_error:</strong> API error or timeout</span>
+                    </div>
+                    <div>
+                        <span class="inline-block w-3 h-3 bg-yellow-500 rounded mr-2"></span>
+                        <span><strong>manual_analysis:</strong> User-triggered analysis</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Track stats
+        let totalEvents = 0;
+        let geminiCalls = 0;
+        let errorCount = 0;
+        
+        // Connect to debug WebSocket
+        function connectDebugWs() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/debug`);
+            
+            ws.onopen = () => {
+                console.log('[Debug] Connected');
+                document.getElementById('ws-status').innerHTML = '<span class="text-green-400">Connected</span>';
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    if (message.type === 'event' && message.data) {
+                        onDebugEvent(message.data);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse debug event:', e);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('[Debug] Disconnected, reconnecting in 3s...');
+                document.getElementById('ws-status').innerHTML = '<span class="text-yellow-500">Reconnecting...</span>';
+                setTimeout(connectDebugWs, 3000);
+            };
+            
+            ws.onerror = () => {
+                console.error('[Debug] WebSocket error');
+                document.getElementById('ws-status').innerHTML = '<span class="text-red-500">Error</span>';
+            };
+        }
+        
+        function onDebugEvent(event) {
+            totalEvents++;
+            
+            // Update counters
+            if (event.event === 'gemini_call') geminiCalls++;
+            if (event.event && event.event.includes('error')) errorCount++;
+            
+            document.getElementById('total-events').textContent = totalEvents;
+            document.getElementById('gemini-calls').textContent = geminiCalls;
+            document.getElementById('error-count').textContent = errorCount;
+            
+            // Format event for display
+            const timestamp = new Date(event.ts * 1000).toLocaleTimeString();
+            let eventHtml = `
+                <div class="event-entry ${event.event.includes('error') ? 'error' : event.event.includes('analysis') ? 'analysis' : ''}">
+                    <div>
+                        <strong>${event.event}</strong>
+                        <span class="timestamp float-right">${timestamp}</span>
+                    </div>
+                    <div class="text-gray-300 mt-1">
+            `;
+            
+            // Format event data
+            for (const [key, value] of Object.entries(event)) {
+                if (key !== 'ts' && key !== 'event') {
+                    if (typeof value === 'object') {
+                        eventHtml += `<div>${key}: ${JSON.stringify(value)}</div>`;
+                    } else {
+                        eventHtml += `<div>${key}: ${value}</div>`;
+                    }
+                }
+            }
+            
+            eventHtml += `</div></div>`;
+            
+            // Prepend to log
+            const logEl = document.getElementById('event-log');
+            if (logEl.children.length === 1 && logEl.children[0].textContent.includes('Waiting')) {
+                logEl.innerHTML = '';
+            }
+            logEl.insertAdjacentHTML('afterbegin', eventHtml);
+            
+            // Keep only last 100 events in DOM
+            while (logEl.children.length > 100) {
+                logEl.removeChild(logEl.lastChild);
+            }
+        }
+        
+        function clearEvents() {
+            document.getElementById('event-log').innerHTML = '<div class="text-gray-500 text-center py-8">Events cleared</div>';
+            totalEvents = 0;
+            geminiCalls = 0;
+            errorCount = 0;
+            document.getElementById('total-events').textContent = '0';
+            document.getElementById('gemini-calls').textContent = '0';
+            document.getElementById('error-count').textContent = '0';
+        }
+        
+        // Connect on load
+        document.addEventListener('DOMContentLoaded', connectDebugWs);
+    </script>
+</body>
+</html>
