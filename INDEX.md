@@ -7,6 +7,8 @@
 | [README.md](./README.md) | **START HERE** — Full overview, setup, features, API, dashboard guide | First thing, always |
 | [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) | Command cheat sheet, essential endpoints, quick troubleshooting | You need to look something up fast |
 | [DOCUMENTATION.md](./DOCUMENTATION.md) | Deep technical details — architecture, every module, data flow | Understanding how things work |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | **Deployment guide** — 6 options (FREE to $5/mo), step-by-step tutorials | Ready to deploy to production |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Developer contribution guide — how to contribute, code style, testing | Want to contribute code |
 | [INDEX.md](./INDEX.md) | This file — file organization and navigation | Finding specific files |
 
 ---
