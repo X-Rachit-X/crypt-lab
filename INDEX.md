@@ -1,390 +1,197 @@
-# 📚 CyberGym Project Reference & Boilerplate Index
+# 📑 Crypt Lab IDS — Complete File Index & Navigation
 
-Welcome! This document indexes all the work completed on understanding and optimizing CyberGym, plus a complete boilerplate template for building new projects.
+## 📚 Documentation
 
----
-
-## 📖 Documentation Map
-
-### **For Understanding CyberGym**
-
-1. **[OPTIMIZATION_SUMMARY.md](./OPTIMIZATION_SUMMARY.md)** ⭐ START HERE
-   - Complete explanation of all changes made
-   - Before/after performance metrics
-   - How optimizations work together
-   - Implementation guide for new projects
-
-2. **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick lookup
-   - What files changed and why
-   - Verification checklist
-   - Common questions answered
-
-3. **[README.md](./README.md)** - Original project documentation
-   - Project overview
-   - Setup instructions
-   - API reference
+| File | Purpose | Read When |
+|------|---------|-----------|
+| [README.md](./README.md) | **START HERE** — Full overview, setup, features, API, dashboard guide | First thing, always |
+| [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) | Command cheat sheet, essential endpoints, quick troubleshooting | You need to look something up fast |
+| [DOCUMENTATION.md](./DOCUMENTATION.md) | Deep technical details — architecture, every module, data flow | Understanding how things work |
+| [INDEX.md](./INDEX.md) | This file — file organization and navigation | Finding specific files |
 
 ---
 
-### **For Building New Projects**
+## 🔧 Core Backend (`ids/`)
 
-4. **[BOILERPLATE_TEMPLATE/SETUP_GUIDE.md](./BOILERPLATE_TEMPLATE/SETUP_GUIDE.md)** ⭐ COMPLETE GUIDE
-   - 400+ line comprehensive setup guide
-   - File structure explanation
-   - Component deep-dives
-   - Customization examples
-   - Deployment checklist
-   - Troubleshooting guide
+### Detection Engine
 
-5. **[BOILERPLATE_TEMPLATE/cyber-project-template/README.md](./BOILERPLATE_TEMPLATE/cyber-project-template/README.md)** - Template overview
-   - Features and architecture
-   - Environment variables
-   - API documentation
-   - Optimization strategy
+| File | Lines | Purpose | Key Functions |
+|------|-------|---------|---|
+| **engine.py** | 98 | ML classification + rule engine | `classify()`, `load_model()`, `predict_with_confidence()` |
+| **aggregator.py** | 191 | Flow extraction (19 features, 5s windows) | `add_packet()`, `finalize_flows()`, `_compute_features()` |
+| **capture.py** | 117 | Scapy packet sniffer | `start()`, `stop()`, raw socket capture |
 
-6. **[BOILERPLATE_TEMPLATE/cyber-project-template/](./BOILERPLATE_TEMPLATE/cyber-project-template/)** - Complete boilerplate
-   - Ready-to-use project structure
-   - All optimizations pre-built
-   - Tests included
-   - Scripts for dev/health check
+### Alert Processing
 
----
+| File | Lines | Purpose | Key Functions |
+|------|-------|---------|---|
+| **alerts.py** | 96 | Alert builder + AES-256-GCM encryption | `build_alert()`, `encrypt_payload()`, field assembly |
+| **db.py** | 132 | SQLite persistence | `init_db()`, `save_alert()`, `get_alerts()`, `get_stats()` |
 
-## 🎯 Quick Start Paths
+### External Enrichment
 
-### Path 1: Understand CyberGym (15 minutes)
-```
-1. Read OPTIMIZATION_SUMMARY.md (sections 1-2)
-2. Check QUICK_REFERENCE.md
-3. Run `pytest tests/ -v` to verify changes
-4. Open /debug dashboard to see optimizations
-```
+| File | Lines | Purpose | Key Functions |
+|------|-------|---------|---|
+| **geo.py** | 90 | IP geo-location via ipinfo.io | `lookup()`, async requests, fallback handling |
+| **llm.py** | 185 | Gemini API calls for countermeasures | `generate_countermeasures()`, rate limit cache, fallback text |
 
-### Path 2: Build Your Own Project (30 minutes)
-```
-1. Read BOILERPLATE_TEMPLATE/SETUP_GUIDE.md (Quick Start section)
-2. Copy template: cp -r BOILERPLATE_TEMPLATE/cyber-project-template ./my-project
-3. Install & run: cd my-project && bash scripts/dev_server.sh
-4. Customize main.py and static/index.html
-5. Deploy using checklist in SETUP_GUIDE.md
-```
+### Log Monitoring
 
-### Path 3: Deep Dive Learning (1-2 hours)
-```
-1. Read OPTIMIZATION_SUMMARY.md (complete)
-2. Read BOILERPLATE_TEMPLATE/SETUP_GUIDE.md (complete)
-3. Study source code:
-   - static/js/app.js (RealTimeMonitor class)
-   - main.py (analysis_worker function)
-   - config.py (Settings dataclass)
-4. Read test files to understand patterns
-5. Customize boilerplate for your needs
-```
+| File | Lines | Purpose | Key Functions |
+|------|-------|---------|---|
+| **log_capture.py** | 148 | Watchdog file monitoring | `start()`, `parse_auth_log()`, `parse_nginx_log()`, pattern matching |
 
 ---
 
-## 📁 Directory Structure
+## 🎮 Attack Simulator (`simulator/`)
 
-```
-cyber-gym-main/                              # Current CyberGym (OPTIMIZED)
-├── OPTIMIZATION_SUMMARY.md                  # ⭐ What changed & why
-├── QUICK_REFERENCE.md                       # Quick lookup guide
-├── README.md                                # Original docs (updated)
-├── main.py                                  # Backend (optimized)
-├── static/js/app.js                        # Frontend (optimized with Page Visibility API)
-├── .env                                     # Config (optimized settings)
-├── .env.example                             # Template (with notes)
-│
-└── BOILERPLATE_TEMPLATE/                    # ⭐ For new projects
-    ├── SETUP_GUIDE.md                       # 400+ line comprehensive guide
-    │
-    └── cyber-project-template/              # Ready-to-use template
-        ├── README.md                        # Template overview
-        ├── main.py                          # Backend (fully optimized)
-        ├── config.py                        # Settings
-        ├── requirements.txt                 # Dependencies
-        ├── .env.example                     # Template
-        ├── pytest.ini                       # Test config
-        ├── .gitignore                       # For git
-        │
-        ├── static/
-        │   ├── index.html                  # Main UI
-        │   ├── debug.html                  # Debug dashboard
-        │   ├── js/app.js                   # Frontend (RealTimeMonitor)
-        │   └── css/styles.css              # Styling
-        │
-        ├── tests/
-        │   ├── conftest.py                 # Pytest fixtures
-        │   ├── test_main.py                # Unit tests
-        │   └── test_integration.py         # Integration tests
-        │
-        └── scripts/
-            ├── dev_server.sh               # Auto-start server
-            └── health_check.sh             # Health monitoring
-```
+| File | Lines | Purpose | Key Classes/Functions |
+|------|-------|---------|---|
+| **simulator.py** | 75 | Scenario runner | `run_scenario()`, async flow injection, progress broadcast |
+| **templates.py** | 164 | 6 attack scenario templates | `PORT_SCAN`, `DOS_FLOOD`, `BRUTE_FORCE_SSH`, `WEB_SCAN`, `DDOS`, `HEARTBLEED` |
 
 ---
 
-## 🔑 Key Concepts
+## 🚀 Main Application
 
-### Optimization 1: Page Visibility API (Frontend)
-**File:** `static/js/app.js`
-
-When you switch browser tabs:
-- Stats polling **pauses** (closes WebSocket)
-- Server resources freed
-- When you return: polling **resumes** automatically
-
-**Result:** 70% less WebSocket traffic for multi-tab users
-
-### Optimization 2: Analysis Debouncing (Backend)
-**File:** `main.py` (analysis_worker function)
-
-Instead of 1 API call per keystroke:
-- Collect events for 2.5 seconds
-- Batch them together
-- Send 1 API call per batch
-
-**Result:** 90% fewer Gemini API calls
-
-### Optimization 3: Reduced Payload (Config)
-**File:** `.env`
-
-- Sample size: 4000 → 2000 characters
-- Fewer tokens = faster API calls
-
-**Result:** 50% smaller API payload, lower quota usage
+| File | Lines | Purpose | Key Modules |
+|------|-------|---------|---|
+| **main.py** | 1341 | FastAPI app — core server | `app`, `startup()`, `detection_loop()`, all REST endpoints, WebSocket handlers |
+| **config.py** | 26 | Settings loader | `load_config()`, environment variables |
 
 ---
 
-## 📊 Performance Impact
+## 🖥️ Frontend (`static/`)
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| **API calls** | ~30/min (active) | ~3/min (active) | **90% ↓** |
-| **WebSocket traffic** | Constant | Paused when hidden | **70% ↓** |
-| **API payload** | 4000 chars | 2000 chars | **50% ↓** |
-| **Gemini quota** | High | Low | **80% ↓** |
-| **Terminal responsiveness** | N/A | Normal | ✓ |
-| **Page load time** | N/A | Faster | Better |
+### HTML & CSS
 
----
+| File | Lines | Purpose |
+|------|-------|---------|
+| **index.html** | 380 | Main dashboard (CSS Grid, 8 panels, dark theme) |
+| **css/styles.css** | | Custom Tailwind overrides (if any) |
 
-## 🛠 Tools & Technologies
+### JavaScript Modules
 
-### Backend
-- **FastAPI** - Modern Python web framework
-- **WebSockets** - Real-time bidirectional communication
-- **asyncio** - Asynchronous I/O
-- **Uvicorn** - ASGI server
-
-### Frontend
-- **Vanilla JavaScript** - No frameworks (fast, lightweight)
-- **WebSocket API** - Browser native
-- **Page Visibility API** - Pause polling when hidden
-- **Tailwind CSS** - Utility-first CSS framework
-- **xterm.js** - Terminal UI (optional)
-
-### Testing
-- **pytest** - Python testing framework
-- **TestClient** - FastAPI testing
-
-### Deployment
-- **Docker** - Containerization
-- **Gunicorn** - Production ASGI server
-- **Cron** - Health monitoring
+| File | Lines | Purpose | Key Classes/Functions |
+|------|-------|---------|---|
+| **js/app.js** | 465 | Dashboard controller | `DashboardApp`, `connectWebSocket()`, `updateAlerts()`, timer logic |
+| **js/chatbot.js** | 395 | AI chatbot module | `ChatBot`, `sendMessage()`, puter.js integration, streaming |
+| **js/map.js** | 94 | Leaflet map manager | `MapManager`, `addMarker()`, CartoDB integration |
+| **js/simulator.js** | 125 | Simulator UI panel | `SimulatorUI`, button wiring, progress bar |
 
 ---
 
-## 🚀 Getting Started
+## 🤖 ML Model (`model/`)
 
-### For CyberGym (Already Optimized)
-```bash
-# Changes already applied, just restart
-uvicorn main:app --host 0.0.0.0 --port 8000
+| File | Size | Purpose |
+|------|------|---------|
+| **ids_model.pkl** | 2.1 GB | scikit-learn Pipeline: StandardScaler + RandomForest (300 trees) |
+| **label_encoder.pkl** | 636 bytes | Class label encoder (11 attack types) |
+| **feature_list.pkl** | 376 bytes | Ordered list of 19 feature names |
 
-# Monitor optimizations
-open http://localhost:8000/debug
-```
-
-### For New Projects
-```bash
-# Copy template
-cp -r BOILERPLATE_TEMPLATE/cyber-project-template my-project
-cd my-project
-
-# Install
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Run
-bash scripts/dev_server.sh
-open http://localhost:8000
-```
+**Note:** Pre-trained model. To retrain, see [DOCUMENTATION.md](./DOCUMENTATION.md#ml-model-details).
 
 ---
 
-## 📚 Learning Resources
+## 🛠️ Utilities & Scripts
 
-### In This Repository
-- **OPTIMIZATION_SUMMARY.md** - Why each optimization exists
-- **BOILERPLATE_TEMPLATE/SETUP_GUIDE.md** - How to use patterns
-- **Inline code comments** - Implementation details
-- **Test files** - Usage examples
-
-### External References
-- **FastAPI docs:** https://fastapi.tiangolo.com/
-- **Page Visibility API:** https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API
-- **Google Gemini API:** https://ai.google.dev/
-- **WebSockets:** https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
-- **pytest:** https://docs.pytest.org/
+| File | Purpose |
+|------|---------|
+| **create_placeholder_model.py** | Regenerate .pkl files if model/ is missing (for testing) |
+| **run.sh** | Server startup/shutdown with options (recommended entry point) |
+| **requirements.txt** | Python dependencies (pip install -r requirements.txt) |
+| **pytest.ini** | pytest configuration (if tests are added) |
+| **.env** | Configuration secrets (NEVER commit) |
+| **.env.example** | Template for .env (commit this, not .env) |
 
 ---
 
-## ❓ FAQ
+## 🎯 Where to Edit for Common Tasks
 
-**Q: Should I use the boilerplate or CyberGym as base?**
-A: Both! CyberGym is for learning. Boilerplate is for production. Both have same optimizations.
-
-**Q: Will the boilerplate work for my use case?**
-A: It's designed to be flexible. Study main.py for patterns, customize as needed.
-
-**Q: How do I add a new resource type?**
-A: See BOILERPLATE_TEMPLATE/SETUP_GUIDE.md section "Customization Guide"
-
-**Q: Can I adjust optimization levels?**
-A: Yes! Edit .env: ANALYSIS_DEBOUNCE_MS, ANALYSIS_SAMPLE_SIZE
-
-**Q: Is this production-ready?**
-A: Yes! See deployment checklist in SETUP_GUIDE.md
-
-**Q: What if I need help?**
-A: Check SETUP_GUIDE.md "Troubleshooting" section first.
+| Task | File(s) | Approx. Location |
+|------|---------|------------------|
+| Add new attack type | `ids/engine.py` | Rule engine (classify method) |
+| Modify ML features | `ids/aggregator.py` | Compute features method |
+| Change detection threshold | `ids/engine.py` | Rule conditions (~line 50) |
+| Add log parser | `ids/log_capture.py` | Parse methods |
+| Customize alert fields | `ids/alerts.py` | build_alert() |
+| New API endpoint | `main.py` | Around line 500+ (@app.get/@app.post) |
+| Dashboard layout | `static/index.html` | CSS Grid section |
+| Chatbot behavior | `static/js/chatbot.js` | System prompt |
+| Simulator scenario | `simulator/templates.py` | Template functions |
 
 ---
 
-## 📋 Checklist: What You Get
+## 📖 Reading Order
 
-✅ **CyberGym Optimization**
-- Frontend Page Visibility API support
-- Backend analysis debouncing
-- Reduced API payload
-- Configuration notes
+**For newcomers:**
+1. README.md → Get overview
+2. QUICK_REFERENCE.md → See essential commands
+3. static/index.html → Understand dashboard layout
+4. main.py → Follow startup() logic
+5. ids/engine.py → See classification pipeline
+6. ids/aggregator.py → Understand feature extraction
 
-✅ **Boilerplate Template**
-- Complete project structure
-- All optimizations pre-built
-- Test suite included
-- Scripts for dev/health check
+**For operators:**
+1. README.md → Setup & configuration
+2. QUICK_REFERENCE.md → Commands & endpoints
+3. Troubleshooting section in README.md
+4. `/api/health` endpoint status
+5. Dashboard log viewer
 
-✅ **Documentation**
-- 400+ line setup guide
-- API reference
-- Customization examples
-- Troubleshooting guide
-- Deployment checklist
-
-✅ **Code Quality**
-- Fully commented source code
-- Type hints where applicable
-- Test coverage
-- Following best practices
+**For developers:**
+1. DOCUMENTATION.md → Full architecture
+2. main.py → Entry point
+3. ids/engine.py + ids/aggregator.py → Core logic
+4. ids/db.py → Data persistence
+5. static/js/app.js → Frontend state
 
 ---
 
-## 🎓 What You Learned
+## 🔒 Security-Related Files
 
-### Architecture
-- WebSocket communication patterns
-- Async/await event handling
-- Analysis debouncing strategy
-- Frontend performance optimization
-
-### Implementation
-- Page Visibility API usage
-- Conditional WebSocket connections
-- Event batching for API efficiency
-- Graceful reconnection logic
-
-### Best Practices
-- Keep secrets out of git
-- Use environment variables
-- Comprehensive testing
-- Clear documentation
+| File | Concern | Action |
+|------|---------|--------|
+| `.env` | **Contains secrets** | Add to `.gitignore` (never commit) |
+| `ids/alerts.py` | AES-256-GCM key | Use strong random key in `.env` |
+| `ids/llm.py` | Gemini API key | Use restricted key with quota limits |
+| `main.py` | API endpoints | Add OAuth2/API key auth in production |
+| `model/ids_model.pkl` | Model extraction | Large file (2.1 GB); consider separate storage |
 
 ---
 
-## 🎯 Next Steps
+## 📦 Key Dependencies
 
-### Option 1: Understand CyberGym
-1. Read OPTIMIZATION_SUMMARY.md
-2. Review code changes
-3. Test with /debug dashboard
-4. Keep using optimized CyberGym
-
-### Option 2: Build New Project
-1. Copy boilerplate template
-2. Read SETUP_GUIDE.md
-3. Customize to your needs
-4. Deploy using checklist
-
-### Option 3: Contribute
-1. Suggest improvements
-2. Add features to boilerplate
-3. Enhance documentation
-4. Share your projects
+| Package | Used In | Version |
+|---------|---------|---------|
+| fastapi | main.py | 0.109.0 |
+| scikit-learn | ids/engine.py | 1.8.0 |
+| scapy | ids/capture.py | 2.5.0 |
+| watchdog | ids/log_capture.py | 4.0 |
+| google-genai | ids/llm.py | latest |
+| cryptography | ids/alerts.py | 42.0.0 |
+| requests | ids/geo.py | latest |
+| python-dotenv | config.py | latest |
+| aiofiles | main.py | latest |
 
 ---
 
-## 📞 Support
+## 🚀 Deployment Checklist
 
-**Something not working?**
-1. Check QUICK_REFERENCE.md for quick answers
-2. Read SETUP_GUIDE.md troubleshooting section
-3. Verify .env configuration
-4. Check browser console for errors
-
-**Want to customize?**
-1. Read SETUP_GUIDE.md customization section
-2. Study source code comments
-3. Review test files for patterns
-4. Check API documentation
-
-**Have questions?**
-1. Read relevant markdown file
-2. Search code comments
-3. Review test examples
-4. Check external references
+- [ ] `.env` configured with valid API keys
+- [ ] `.gitignore` includes `.env`, `__pycache__/`, `.ids_server.pid`
+- [ ] `ids_alerts.db` permissions set: `chmod 600`
+- [ ] Firewall allows port 8000 (or configured port)
+- [ ] Network interface in `.env` matches actual machine
+- [ ] Database WAL mode enabled (`ids/db.py` line ~30)
+- [ ] Logs readable (or run with elevated privileges)
+- [ ] Model pickle files present and readable (`ls -lh model/`)
+- [ ] Test with simulator: `curl -X POST http://localhost:8000/api/simulate`
+- [ ] Check dashboard: `http://localhost:8000`
 
 ---
 
-## 📦 Project Stats
-
-| Metric | Value |
-|--------|-------|
-| **Files Modified** | 3 (app.js, .env, .env.example) |
-| **Boilerplate Files Created** | 15+ |
-| **Documentation Lines** | 1000+ |
-| **Code Comments** | Comprehensive |
-| **Test Coverage** | Unit + integration |
-| **Optimization Level** | 70-90% API reduction |
-
----
-
-## ✨ Credits
-
-- **Original Project:** CyberGym by X-Rachit-X
-- **Optimizations:** Page Visibility API + debouncing strategies
-- **Boilerplate:** Production-ready template based on CyberGym patterns
-- **Documentation:** Comprehensive setup and customization guides
-
----
-
-**Happy building! 🚀**
-
-Start with:
-1. **[OPTIMIZATION_SUMMARY.md](./OPTIMIZATION_SUMMARY.md)** - Understand changes
-2. **[BOILERPLATE_TEMPLATE/SETUP_GUIDE.md](./BOILERPLATE_TEMPLATE/SETUP_GUIDE.md)** - Build new projects
-3. **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick lookup
-
+**Last updated:** August 12, 2026  
+**Total project size:** ~2.2 GB (mostly ML model)  
+**Total Python LOC:** ~2500 lines  
+**Total frontend LOC:** ~1000 lines

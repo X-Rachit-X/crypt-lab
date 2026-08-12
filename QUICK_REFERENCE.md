@@ -1,4 +1,25 @@
-# 🚀 Quick Reference: What Changed & Where
+# 🚀 Quick Reference — Crypt Lab IDS
+
+## One-Line Setup
+
+```bash
+git clone https://github.com/X-Rachit-X/crypt-lab.git && cd crypt-lab && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && ./run.sh
+```
+
+## Essential Commands
+
+| Task | Command |
+|------|---------|
+| Start server | `./run.sh` |
+| Start with live packet capture | `./run.sh --capture` |
+| Stop server | `./run.sh stop` |
+| Custom port | `./run.sh --port 9000` |
+| Open dashboard | `http://localhost:8000` |
+| Generate AES key | `python3 -c "import os,binascii; print(binascii.hexlify(os.urandom(32)).decode())"` |
+| Find network interface | `ip link show` |
+| Fix database ownership | `sudo chown $USER:$USER ids_alerts.db` |
+
+---
 
 ## Files Modified in Your CyberGym Project
 
